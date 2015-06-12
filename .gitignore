@@ -275,3 +275,11 @@ pip-log.txt
 #Mr Developer
 .mr.developer.cfg
 /target/
+*.lock
+config.testWSDLSxml.stats
+*.gzbin
+*.stats
+*.ref
+train-*.xml
+test-WSDLS.xml
+report-*.xml
