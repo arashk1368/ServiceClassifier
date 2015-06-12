@@ -283,3 +283,4 @@ config.testWSDLSxml.stats
 train-*.xml
 test-WSDLS.xml
 report-*.xml
+reports/
