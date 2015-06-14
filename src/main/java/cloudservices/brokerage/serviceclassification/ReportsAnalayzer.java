@@ -5,13 +5,17 @@
 package cloudservices.brokerage.serviceclassification;
 
 import cloudservices.brokerage.commons.utils.file_utils.DirectoryUtil;
+import cloudservices.brokerage.commons.utils.file_utils.FileReader;
+import cloudservices.brokerage.commons.utils.file_utils.FileWriter;
 import cloudservices.brokerage.commons.utils.logging.LoggerSetup;
 import java.io.File;
 import java.io.IOException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javafx.util.Pair;
@@ -87,7 +91,7 @@ public class ReportsAnalayzer {
             sb.append(dateFormat.format(cal.getTime()));
             String filename = sb.toString();
             DirectoryUtil.createDir("logs");
-            LoggerSetup.setup("logs/" + filename + ".txt", "logs/" + filename + ".html", Level.INFO);
+            LoggerSetup.setup("logs/" + filename + ".txt", "logs/" + filename + ".html", Level.FINE);
             return true;
         } catch (IOException ex) {
             LOGGER.log(Level.SEVERE, ex.getMessage(), ex);
@@ -112,5 +116,47 @@ public class ReportsAnalayzer {
         }
         result.createNewFile();
         return result;
+
+    private Map<String, ReportEntity> createReportEntities(File file) throws IOException {
+        Map<String, ReportEntity> reportEntities = new HashMap<>();
+        List<String> file1Contents = FileReader.ReadAllLines(file);
+        LOGGER.log(Level.INFO, "Creating Report Entities for {0}", file.getName());
+
+        ReportEntity re = null;
+        ReportRow rr;
+
+        for (String line : file1Contents) {
+            if (!line.startsWith("1st") && !line.startsWith("2nd")) {
+                LOGGER.log(Level.FINE, "Ignoring {0}", line);
+            }
+
+            // guess,run,config,good,bad,%,recall,mca,ms
+            rr = new ReportRow();
+            String[] contents = line.split(",");
+            rr.setGuess(contents[0]);
+            rr.setRun(Integer.parseInt(contents[1]));
+            rr.setConfig(contents[2]);
+            rr.setGood(Integer.parseInt(contents[3]));
+            rr.setBad(Integer.parseInt(contents[4]));
+            rr.setPrecision(Double.parseDouble(contents[5]));
+            rr.setRecall(Double.parseDouble(contents[6]));
+            rr.setMca(Double.parseDouble(contents[7]));
+            rr.setMs(Double.parseDouble(contents[8]));
+            LOGGER.log(Level.FINE, "Report Row : {0}", rr);
+
+            if (rr.getConfig().contains("(")) {
+                // It is class result
+                rr.setIsClassResult(true);
+                rr.setClassName(rr.getConfig().split(" ")[0]);
+                re.getClassResults().put(rr.getKey(), rr);
+            } else {
+                rr.setIsClassResult(false);
+                re = new ReportEntity(rr);
+                LOGGER.log(Level.FINE, "New Report Entity : {0}", re);
+                reportEntities.put(rr.getKey(), re);
+            }
+        }
+        return reportEntities;
+    }
     }
 }
