@@ -28,13 +28,12 @@ public class ReportsAnalayzer {
 
     private final static Logger LOGGER = Logger.getLogger(ReportsAnalayzer.class.getName());
     private final List<File> reportFiles;
-    private final String reportsFolderAddress;
     private final String extension;
 
     public ReportsAnalayzer(String reportsFolderAddress, String extension) {
-        this.reportsFolderAddress = reportsFolderAddress;
         this.extension = extension;
         this.reportFiles = DirectoryUtil.getAllFiles(reportsFolderAddress, extension);
+
     }
 
     public static void main(String[] argv) {
@@ -43,7 +42,7 @@ public class ReportsAnalayzer {
 
             LOGGER.log(Level.SEVERE, "Analyzing Report Files Start...");
 
-            ReportsAnalayzer analyzer = new ReportsAnalayzer("reports", "txt");
+            ReportsAnalayzer analyzer = new ReportsAnalayzer("reports/test/", "txt");
             analyzer.analyzeAll2FoldFiles();
 
         } catch (Exception ex) {
@@ -99,7 +98,7 @@ public class ReportsAnalayzer {
         }
     }
 
-    private File createResultFile(File file1) throws Exception {
+    private Pair<File, File> createResultFiles(File file1) throws Exception {
         String address = file1.getPath().replace(file1.getName(), "");
         address += "results";
         DirectoryUtil.createDir(address);
@@ -108,14 +107,25 @@ public class ReportsAnalayzer {
         if (fileName.contains("-2Fold")) {
             fileName = fileName.replace("-2Fold", "");
         }
-        fileName += "-Average";
-        File result = new File(address + fileName + "." + this.extension);
-        if (result.exists()) {
-            LOGGER.log(Level.INFO, "Result file already exists : {0}", result.getPath());
-            result.delete();
+
+        String averageName = fileName + "-Average";
+        File average = new File(address + averageName + "." + this.extension);
+        if (average.exists()) {
+            LOGGER.log(Level.FINE, "Average file already exists : {0}", average.getPath());
+            average.delete();
         }
-        result.createNewFile();
-        return result;
+        average.createNewFile();
+
+        String configOnlyName = fileName + "-ConfigOnlyAverage";
+        File configOnly = new File(address + configOnlyName + "." + this.extension);
+        if (configOnly.exists()) {
+            LOGGER.log(Level.FINE, "Config only file already exists : {0}", configOnly.getPath());
+            configOnly.delete();
+        }
+        configOnly.createNewFile();
+
+        return new Pair<>(average, configOnly);
+    }
 
     private Map<String, ReportEntity> createReportEntities(File file) throws IOException {
         Map<String, ReportEntity> reportEntities = new HashMap<>();
