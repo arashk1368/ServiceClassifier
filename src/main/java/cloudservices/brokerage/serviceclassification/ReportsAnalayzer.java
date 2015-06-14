@@ -138,27 +138,28 @@ public class ReportsAnalayzer {
         for (String line : file1Contents) {
             if (!line.startsWith("1st") && !line.startsWith("2nd")) {
                 LOGGER.log(Level.FINE, "Ignoring {0}", line);
+                continue;
             }
 
             // guess,run,config,good,bad,%,recall,mca,ms
             rr = new ReportRow();
             String[] contents = line.split(",");
             rr.setGuess(contents[0]);
-            rr.setRun(Integer.parseInt(contents[1]));
+            rr.setRun(contents[1]);
             rr.setConfig(contents[2]);
-            rr.setGood(Integer.parseInt(contents[3]));
-            rr.setBad(Integer.parseInt(contents[4]));
+            rr.setGood(Double.parseDouble(contents[3]));
+            rr.setBad(Double.parseDouble(contents[4]));
             rr.setPrecision(Double.parseDouble(contents[5]));
             rr.setRecall(Double.parseDouble(contents[6]));
             rr.setMca(Double.parseDouble(contents[7]));
             rr.setMs(Double.parseDouble(contents[8]));
-            LOGGER.log(Level.FINE, "Report Row : {0}", rr);
 
             if (rr.getConfig().contains("(")) {
                 // It is class result
                 rr.setIsClassResult(true);
                 rr.setClassName(rr.getConfig().split(" ")[0]);
                 re.getClassResults().put(rr.getKey(), rr);
+                LOGGER.log(Level.FINE, "Report Row : {0}", rr);
             } else {
                 rr.setIsClassResult(false);
                 re = new ReportEntity(rr);
