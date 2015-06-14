@@ -35,6 +35,6 @@ public class ReportEntity {
 
     @Override
     public String toString() {
-        return "ReportEntity{" + "classResults=" + classResults + ", configResult=" + configResult + '}';
+        return "ReportEntity{" + "configResult=" + configResult + "; classResults=" + classResults + '}';
     }
 }

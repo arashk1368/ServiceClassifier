@@ -44,7 +44,7 @@ public class ReportsAnalayzer {
 
             LOGGER.log(Level.SEVERE, "Analyzing Report Files Start...");
 
-            ReportsAnalayzer analyzer = new ReportsAnalayzer("reports/test/", "txt");
+            ReportsAnalayzer analyzer = new ReportsAnalayzer("reports/", "txt");
             analyzer.analyzeAll2FoldFiles();
 
         } catch (Exception ex) {
@@ -54,14 +54,49 @@ public class ReportsAnalayzer {
 
     public void analyzeAll2FoldFiles() throws Exception {
         Pair<File, File> pair = getNextFilesPair();
+        int fileCounter = 0;
         while (pair != null) {
             File file1 = pair.getKey();
             File file2 = pair.getValue();
             LOGGER.log(Level.INFO, "Analyzing {0} and {1}", new Object[]{file1.getPath(), file2.getPath()});
-            File average = this.createResultFile(file1);
-            LOGGER.log(Level.INFO, "Created Result File in {0}", average.getPath());
+            Map<String, ReportEntity> report1 = this.createReportEntities(file1);
+            Map<String, ReportEntity> report2 = this.createReportEntities(file2);
+            Map<String, ReportEntity> resultAverage = new HashMap<>();
+            int counter = 0;
+
+            LOGGER.log(Level.INFO, "Starting Average Process...");
+
+            for (Map.Entry<String, ReportEntity> entrySet : report1.entrySet()) {
+                String key = entrySet.getKey();
+                ReportEntity first = entrySet.getValue();
+                LOGGER.log(Level.FINE, "First Report Entity {0}", first);
+                ReportEntity second = report2.get(key);
+                if (second == null) {
+                    LOGGER.log(Level.INFO, "Second Report Entity does not have {0}", key);
+                    continue;
+                }
+
+                report2.remove(key);
+                LOGGER.log(Level.FINE, "Second Report Entity {0}", second);
+                ReportEntity average = this.getAverageReport(first, second);
+                LOGGER.log(Level.FINE, "Average Report Entity {0}", average);
+                resultAverage.put(key, average);
+
+                counter++;
+            }
+
+            LOGGER.log(Level.INFO, "{0} Report Entities Averaged", counter);
+            for (Map.Entry<String, ReportEntity> entrySet2 : report2.entrySet()) {
+                LOGGER.log(Level.INFO, "First Report Entity does not have {0}", entrySet2.getKey());
+            }
+
+            this.writeResult(resultAverage, file1);
+
             pair = getNextFilesPair();
+            fileCounter++;
         }
+
+        LOGGER.log(Level.INFO, "{0} Report Pair Files Analayzed", fileCounter);
     }
 
     private Pair<File, File> getNextFilesPair() {
@@ -92,7 +127,7 @@ public class ReportsAnalayzer {
             sb.append(dateFormat.format(cal.getTime()));
             String filename = sb.toString();
             DirectoryUtil.createDir("logs");
-            LoggerSetup.setup("logs/" + filename + ".txt", "logs/" + filename + ".html", Level.FINE);
+            LoggerSetup.setup("logs/" + filename + ".txt", "logs/" + filename + ".html", Level.INFO);
             return true;
         } catch (IOException ex) {
             LOGGER.log(Level.SEVERE, ex.getMessage(), ex);
@@ -102,7 +137,7 @@ public class ReportsAnalayzer {
 
     private Pair<File, File> createResultFiles(File file1) throws Exception {
         String address = file1.getPath().replace(file1.getName(), "");
-        address += "results";
+        address += "Two-Fold-Average";
         DirectoryUtil.createDir(address);
         address += "/";
         String fileName = file1.getName().replace("." + this.extension, "");
@@ -218,5 +253,32 @@ public class ReportsAnalayzer {
         TreeMap<String, ReportRow> sortedMap = new TreeMap<>(original);
         return sortedMap;
     }
+
+    private void writeResult(Map<String, ReportEntity> result, File input) throws Exception {
+        LOGGER.log(Level.INFO, "Starting to Write Result Files...");
+        Pair<File, File> resultFiles = this.createResultFiles(input);
+        String averageFilePath = resultFiles.getKey().getPath();
+        String configOnlyFilePath = resultFiles.getValue().getPath();
+        LOGGER.log(Level.INFO, "Average file created : {0}", averageFilePath);
+        LOGGER.log(Level.INFO, "Config Only Average file created : {0}", configOnlyFilePath);
+        FileWriter.appendString("guess,run,config,good,bad,%,recall,mca,ms" + "\n", averageFilePath);
+        FileWriter.appendString("guess,run,config,good,bad,%,recall,mca,ms" + "\n", configOnlyFilePath);
+
+        Map<String, ReportEntity> sorted = this.sortReportEntities(result);
+
+        int counter = 0;
+        for (Map.Entry<String, ReportEntity> entrySet : sorted.entrySet()) {
+            ReportEntity resultRE = entrySet.getValue();
+
+            FileWriter.appendString(resultRE.getConfigResult().toReportString() + "\n", averageFilePath);
+            for (Map.Entry<String, ReportRow> classResultEntry : resultRE.getClassResults().entrySet()) {
+                FileWriter.appendString(classResultEntry.getValue().toReportString() + "\n", averageFilePath);
+            }
+
+            FileWriter.appendString(resultRE.getConfigResult().toReportString() + "\n", configOnlyFilePath);
+            counter++;
+        }
+
+        LOGGER.log(Level.INFO, "{0} Report Entities Wrote to Files", counter);
     }
 }

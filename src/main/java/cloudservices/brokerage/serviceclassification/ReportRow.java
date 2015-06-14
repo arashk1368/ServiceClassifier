@@ -119,7 +119,12 @@ public class ReportRow implements Comparable<ReportRow> {
 
     @Override
     public String toString() {
-        return "ReportRow{" + "guess=" + guess + ", run=" + run + ", config=" + config + ", good=" + good + ", bad=" + bad + ", precision=" + precision + ", recall=" + recall + ", mca=" + mca + ", ms=" + ms + ", isClassResult=" + isClassResult + ", className=" + className + '}';
+        return "ReportRow{" + "guess=" + guess + "; run=" + run + "; config=" + config + "; good=" + good + "; bad=" + bad + "; precision=" + precision + "; recall=" + recall + "; mca=" + mca + "; ms=" + ms + "; isClassResult=" + isClassResult + "; className=" + className + '}';
+    }
+
+    public String toReportString() {
+        return guess + "," + run + "," + config + "," + good + "," + bad + "," + precision + "," + recall + "," + mca + "," + ms;
+    }
 
     @Override
     public int compareTo(ReportRow other) {
