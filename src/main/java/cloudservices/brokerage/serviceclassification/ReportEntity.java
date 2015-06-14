@@ -13,12 +13,16 @@ import java.util.Map;
  */
 public class ReportEntity {
 
-    private final Map<String, ReportRow> classResults;
+    private Map<String, ReportRow> classResults;
     private final ReportRow configResult;
 
     public ReportEntity(ReportRow configResult) {
         this.configResult = configResult;
         this.classResults = new HashMap<>();
+    }
+
+    public void setClassResults(Map<String, ReportRow> classResults) {
+        this.classResults = classResults;
     }
 
     public Map<String, ReportRow> getClassResults() {

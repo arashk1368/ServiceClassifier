@@ -8,7 +8,7 @@ package cloudservices.brokerage.serviceclassification;
  *
  * @author Arash Khodadadi <http://www.arashkhodadadi.com/>
  */
-public class ReportRow {
+public class ReportRow implements Comparable<ReportRow> {
 
     private String guess;
     private String run;
@@ -120,5 +120,9 @@ public class ReportRow {
     @Override
     public String toString() {
         return "ReportRow{" + "guess=" + guess + ", run=" + run + ", config=" + config + ", good=" + good + ", bad=" + bad + ", precision=" + precision + ", recall=" + recall + ", mca=" + mca + ", ms=" + ms + ", isClassResult=" + isClassResult + ", className=" + className + '}';
+
+    @Override
+    public int compareTo(ReportRow other) {
+        return (int) Math.ceil(this.precision - other.precision);
     }
 }

@@ -13,9 +13,11 @@ import java.io.IOException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javafx.util.Pair;
@@ -203,6 +205,18 @@ public class ReportsAnalayzer {
         averageRR.setMca((first.getMca() + second.getMca()) / 2.0);
         averageRR.setMs((first.getMs() + second.getMs()) / 2.0);
         return averageRR;
+    }
+
+    private Map<String, ReportEntity> sortReportEntities(Map<String, ReportEntity> original) {
+        ReportEntityComparator bvc = new ReportEntityComparator(original);
+        TreeMap<String, ReportEntity> sortedMap = new TreeMap<>(bvc);
+        sortedMap.putAll(original);
+        return sortedMap;
+    }
+
+    private Map<String, ReportRow> sortClassesReport(Map<String, ReportRow> original) {
+        TreeMap<String, ReportRow> sortedMap = new TreeMap<>(original);
+        return sortedMap;
     }
     }
 }
