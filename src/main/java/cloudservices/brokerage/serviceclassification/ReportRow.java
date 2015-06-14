@@ -11,10 +11,10 @@ package cloudservices.brokerage.serviceclassification;
 public class ReportRow {
 
     private String guess;
-    private int run;
+    private String run;
     private String config;
-    private int good;
-    private int bad;
+    private double good;
+    private double bad;
     private double precision;
     private double recall;
     private double mca;
@@ -33,11 +33,11 @@ public class ReportRow {
         this.guess = guess;
     }
 
-    public int getRun() {
+    public String getRun() {
         return run;
     }
 
-    public void setRun(int run) {
+    public void setRun(String run) {
         this.run = run;
     }
 
@@ -49,19 +49,19 @@ public class ReportRow {
         this.config = config;
     }
 
-    public int getGood() {
+    public double getGood() {
         return good;
     }
 
-    public void setGood(int good) {
+    public void setGood(double good) {
         this.good = good;
     }
 
-    public int getBad() {
+    public double getBad() {
         return bad;
     }
 
-    public void setBad(int bad) {
+    public void setBad(double bad) {
         this.bad = bad;
     }
 

@@ -168,5 +168,40 @@ public class ReportsAnalayzer {
         }
         return reportEntities;
     }
+
+    private ReportEntity getAverageReport(ReportEntity firstRE, ReportEntity secondRE) {
+        ReportRow firstRR = firstRE.getConfigResult();
+        ReportRow secondRR = secondRE.getConfigResult();
+        ReportRow average = getAverageRow(firstRR, secondRR);
+        average.setIsClassResult(false);
+        ReportEntity re = new ReportEntity(average);
+
+        for (Map.Entry<String, ReportRow> entrySet : firstRE.getClassResults().entrySet()) {
+            String key = entrySet.getKey();
+            ReportRow classAverage = this.getAverageRow(entrySet.getValue(), secondRE.getClassResults().get(key));
+            classAverage.setIsClassResult(true);
+            classAverage.setClassName(classAverage.getConfig().split(" ")[0]);
+            re.getClassResults().put(key, classAverage);
+        }
+
+        Map<String, ReportRow> sortedClasses = this.sortClassesReport(re.getClassResults());
+        re.setClassResults(sortedClasses);
+        return re;
+    }
+
+    private ReportRow getAverageRow(ReportRow first, ReportRow second) {
+        // guess,run,config,good,bad,%,recall,mca,ms
+        ReportRow averageRR = new ReportRow();
+        averageRR.setGuess(first.getGuess());
+        averageRR.setRun(first.getRun() + "-" + second.getRun());
+        averageRR.setConfig(first.getConfig());
+        averageRR.setGood((first.getGood() + second.getGood()) / 2.0);
+        averageRR.setBad((first.getBad() + second.getBad()) / 2.0);
+        averageRR.setPrecision((first.getPrecision() + second.getPrecision()) / 2.0);
+        averageRR.setRecall((first.getRecall() + second.getRecall()) / 2.0);
+        averageRR.setMca((first.getMca() + second.getMca()) / 2.0);
+        averageRR.setMs((first.getMs() + second.getMs()) / 2.0);
+        return averageRR;
+    }
     }
 }
