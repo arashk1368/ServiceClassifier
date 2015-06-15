@@ -13,7 +13,6 @@ import java.io.IOException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -35,7 +34,6 @@ public class ReportsAnalayzer {
     public ReportsAnalayzer(String reportsFolderAddress, String extension) {
         this.extension = extension;
         this.reportFiles = DirectoryUtil.getAllFiles(reportsFolderAddress, extension);
-
     }
 
     public static void main(String[] argv) {
