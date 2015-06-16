@@ -36,7 +36,7 @@ public class LatexConvertor {
         try {
             createLogFile();
 
-            LatexConvertor convertor = new LatexConvertor("reports/test/", "txt");
+            LatexConvertor convertor = new LatexConvertor("reports/", "txt");
             convertor.convertAllFiles(true, 100);
         } catch (Exception ex) {
             LOGGER.log(Level.SEVERE, ex.getMessage(), ex);
@@ -64,7 +64,7 @@ public class LatexConvertor {
             List<String> lines = FileReader.ReadAllLines(reportFile);
             LOGGER.log(Level.INFO, "Creating Latex Table for {0}", reportFile.getPath());
 
-            File latex = this.createResultFile(reportFile);
+            File latex = this.createResultFile(reportFile, topOnly, numberOfConfigs);
             LOGGER.log(Level.INFO, "Result Latex File : {0}", latex.getPath());
             this.writeHeader(latex);
             int counter = numberOfConfigs;
@@ -99,11 +99,20 @@ public class LatexConvertor {
         }
     }
 
-    private File createResultFile(File input) throws Exception {
+    private File createResultFile(File input, boolean topOnly, int numberOfConfigs) throws Exception {
         String address = input.getPath().replace(input.getName(), "");
         address += "Latex-Tables";
         DirectoryUtil.createDir(address);
         address += "/";
+
+        if (topOnly) {
+            address += "BestOnly-";
+        }
+
+        address += "Top" + numberOfConfigs;
+        DirectoryUtil.createDir(address);
+        address += "/";
+
         String fileName = input.getName().replace("." + this.extension, "");
         if (fileName.contains("-2Fold")) {
             fileName = fileName.replace("-2Fold", "");
