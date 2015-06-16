@@ -37,7 +37,7 @@ public class LatexConvertor {
             createLogFile();
 
             LatexConvertor convertor = new LatexConvertor("reports/test/", "txt");
-            convertor.convertAllFiles(200);
+            convertor.convertAllFiles(true, 100);
         } catch (Exception ex) {
             LOGGER.log(Level.SEVERE, ex.getMessage(), ex);
         }
@@ -59,7 +59,7 @@ public class LatexConvertor {
         }
     }
 
-    private void convertAllFiles(int rowCount) throws IOException, Exception {
+    private void convertAllFiles(boolean topOnly, int numberOfConfigs) throws IOException, Exception {
         for (File reportFile : reportFiles) {
             List<String> lines = FileReader.ReadAllLines(reportFile);
             LOGGER.log(Level.INFO, "Creating Latex Table for {0}", reportFile.getPath());
@@ -67,7 +67,8 @@ public class LatexConvertor {
             File latex = this.createResultFile(reportFile);
             LOGGER.log(Level.INFO, "Result Latex File : {0}", latex.getPath());
             this.writeHeader(latex);
-            int counter = rowCount;
+            int counter = numberOfConfigs;
+            double maxPrecision = -1;
 
             for (String line : lines) {
                 if (!line.startsWith("1st") && !line.startsWith("2nd")) {
@@ -75,13 +76,23 @@ public class LatexConvertor {
                     continue;
                 }
 
-                String row = this.getRow(line);
+                double[] precision = new double[1];
+                boolean[] isConfig = new boolean[1];
+                String row = this.getRow(line, isConfig, precision);
+                if (isConfig[0]) {
+                    if (maxPrecision == -1) {
+                        maxPrecision = precision[0];
+                    } else if (maxPrecision != precision[0] && topOnly) {
+                        break;
+                    }
+                    counter--;
+                    if (counter < 0) {
+                        break;
+                    }
+                }
+
                 LOGGER.log(Level.FINE, "Row {0}", row);
                 FileWriter.appendString(row, latex.getPath());
-                counter--;
-                if (counter == 0) {
-                    break;
-                }
             }
 
             FileWriter.appendString("\\end{longtabu}", latex.getPath());
@@ -117,7 +128,7 @@ public class LatexConvertor {
         FileWriter.appendString(header, latex.getPath());
     }
 
-    private String getRow(String line) {
+    private String getRow(String line, boolean[] isConfig, double[] precision) {
         String row = "";
         String[] contents = line.split(",");
         contents[2] = contents[2].replace("-noclustering", "");
@@ -138,6 +149,8 @@ public class LatexConvertor {
             table = table.substring(0, table.length() - 3);
             table += " \\end{tabular}";
             contents[2] = table;
+            isConfig[0] = true;
+            precision[0] = Double.parseDouble(contents[5]);
         }
 
         for (String content : contents) {
