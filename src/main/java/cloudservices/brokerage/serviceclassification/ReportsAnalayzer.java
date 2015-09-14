@@ -42,7 +42,7 @@ public class ReportsAnalayzer {
 
             LOGGER.log(Level.SEVERE, "Analyzing Report Files Start...");
 
-            ReportsAnalayzer analyzer = new ReportsAnalayzer("reports/", "txt");
+            ReportsAnalayzer analyzer = new ReportsAnalayzer("reports/test/", "txt");
             analyzer.analyzeAll2FoldFiles();
 
         } catch (Exception ex) {
@@ -76,7 +76,10 @@ public class ReportsAnalayzer {
 
                 report2.remove(key);
                 LOGGER.log(Level.FINE, "Second Report Entity {0}", second);
-                ReportEntity average = this.getAverageReport(first, second);
+                ReportEntity[] res = new ReportEntity[2];
+                res[0] = first;
+                res[1] = second;
+                ReportEntity average = this.getAverageReport(res);
                 LOGGER.log(Level.FINE, "Average Report Entity {0}", average);
                 resultAverage.put(key, average);
 
@@ -95,6 +98,52 @@ public class ReportsAnalayzer {
         }
 
         LOGGER.log(Level.INFO, "{0} Report Pair Files Analayzed", fileCounter);
+    }
+
+    public void analyze10FoldFiles() throws Exception {
+        if (reportFiles.size() != 10) {
+            throw new Exception("The files are not correct for 10-fold.");
+        }
+
+        Map[] reports = new Map[10];
+
+        for (int i = 0; i < 10; i++) {
+            File file = reportFiles.get(i);
+            LOGGER.log(Level.INFO, "File : {0} ", file.getName());
+            Map<String, ReportEntity> report = this.createReportEntities(file);
+            reports[i] = report;
+        }
+
+        Map<String, ReportEntity> resultAverage = new HashMap<>();
+        int counter = 0;
+
+        LOGGER.log(Level.INFO, "Starting Average Process...");
+        Map<String, ReportEntity> report = reports[0];
+
+        for (Map.Entry<String, ReportEntity> entrySet : report.entrySet()) {
+            String key = entrySet.getKey();
+            ReportEntity[] res = new ReportEntity[10];
+            res[0] = entrySet.getValue();
+            LOGGER.log(Level.FINE, "First Report Entity {0}", res[0]);
+            for (int i = 1; i < 10; i++) {
+                ReportEntity re = (ReportEntity) reports[i].get(key);
+                if (re == null) {
+                    throw new Exception("One of the files is different.");
+                }
+                res[i] = re;
+                reports[i].remove(key);
+            }
+
+            ReportEntity average = this.getAverageReport(res);
+            LOGGER.log(Level.FINE, "Average Report Entity {0}", average);
+            resultAverage.put(key, average);
+
+            counter++;
+        }
+
+        LOGGER.log(Level.INFO, "{0} Report Entities Averaged", counter);
+
+        this.writeResult(resultAverage, reportFiles.get(0));
     }
 
     private Pair<File, File> getNextFilesPair() {
@@ -135,7 +184,7 @@ public class ReportsAnalayzer {
 
     private Pair<File, File> createResultFiles(File file1) throws Exception {
         String address = file1.getPath().replace(file1.getName(), "");
-        address += "Two-Fold-Average";
+        address += "Average";
         DirectoryUtil.createDir(address);
         address += "/";
         String fileName = file1.getName().replace("." + this.extension, "");
@@ -205,16 +254,29 @@ public class ReportsAnalayzer {
         return reportEntities;
     }
 
-    private ReportEntity getAverageReport(ReportEntity firstRE, ReportEntity secondRE) {
-        ReportRow firstRR = firstRE.getConfigResult();
-        ReportRow secondRR = secondRE.getConfigResult();
-        ReportRow average = getAverageRow(firstRR, secondRR);
+    private ReportEntity getAverageReport(ReportEntity[] reportEntities) throws Exception {
+        if (reportEntities.length < 2) {
+            throw new Exception("Cannot average less than 2 files.");
+        }
+
+        ReportRow[] rows = new ReportRow[reportEntities.length];
+        for (int i = 0; i < reportEntities.length; i++) {
+            rows[i] = reportEntities[i].getConfigResult();
+        }
+
+        ReportRow average = getAverageRow(rows);
         average.setIsClassResult(false);
         ReportEntity re = new ReportEntity(average);
 
-        for (Map.Entry<String, ReportRow> entrySet : firstRE.getClassResults().entrySet()) {
+        for (Map.Entry<String, ReportRow> entrySet : reportEntities[0].getClassResults().entrySet()) {
             String key = entrySet.getKey();
-            ReportRow classAverage = this.getAverageRow(entrySet.getValue(), secondRE.getClassResults().get(key));
+
+            ReportRow[] classRows = new ReportRow[reportEntities.length];
+            for (int i = 0; i < reportEntities.length; i++) {
+                classRows[i] = reportEntities[i].getClassResults().get(key);
+            }
+
+            ReportRow classAverage = this.getAverageRow(classRows);
             classAverage.setIsClassResult(true);
             classAverage.setClassName(classAverage.getConfig().split(" ")[0]);
             re.getClassResults().put(key, classAverage);
@@ -225,18 +287,38 @@ public class ReportsAnalayzer {
         return re;
     }
 
-    private ReportRow getAverageRow(ReportRow first, ReportRow second) {
+    private ReportRow getAverageRow(ReportRow[] rows) {
         // guess,run,config,good,bad,%,recall,mca,ms
         ReportRow averageRR = new ReportRow();
+
+        ReportRow first = rows[0];
         averageRR.setGuess(first.getGuess());
-        averageRR.setRun(first.getRun() + "-" + second.getRun());
+        averageRR.setRun(first.getRun());
         averageRR.setConfig(first.getConfig());
-        averageRR.setGood((first.getGood() + second.getGood()) / 2.0);
-        averageRR.setBad((first.getBad() + second.getBad()) / 2.0);
-        averageRR.setPrecision((first.getPrecision() + second.getPrecision()) / 2.0);
-        averageRR.setRecall((first.getRecall() + second.getRecall()) / 2.0);
-        averageRR.setMca((first.getMca() + second.getMca()) / 2.0);
-        averageRR.setMs((first.getMs() + second.getMs()) / 2.0);
+        double goodAvg = first.getGood();
+        double badAvg = first.getBad();
+        double precisionAvg = first.getPrecision();
+        double recallAvg = first.getRecall();
+        double mcaAvg = first.getMca();
+        double msAvg = first.getMs();
+        double num = rows.length;
+
+        for (int i = 1; i < num; i++) {
+            averageRR.setRun(averageRR.getRun() + "-" + rows[i].getRun());
+            goodAvg += rows[i].getGood();
+            badAvg += rows[i].getBad();
+            precisionAvg += rows[i].getPrecision();
+            recallAvg += rows[i].getRecall();
+            mcaAvg += rows[i].getMca();
+            msAvg += rows[i].getMs();
+        }
+
+        averageRR.setGood(goodAvg / num);
+        averageRR.setBad(badAvg / num);
+        averageRR.setPrecision(precisionAvg / num);
+        averageRR.setRecall(recallAvg / num);
+        averageRR.setMca(mcaAvg / num);
+        averageRR.setMs(msAvg / num);
         return averageRR;
     }
 
