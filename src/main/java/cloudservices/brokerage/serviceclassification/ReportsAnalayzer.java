@@ -38,6 +38,17 @@ public class ReportsAnalayzer {
         this.reportFiles = DirectoryUtil.getAllFiles(reportsFolderAddress, extension);
     }
 
+    public ReportsAnalayzer(String reportsFolderAddress, String extension, String fileName) {
+        this.extension = extension;
+        List<File> allFiles = DirectoryUtil.getAllFiles(reportsFolderAddress, extension);
+        this.reportFiles = new ArrayList<>();
+        for (File file : allFiles) {
+            if (file.getName().compareTo(fileName) == 0) {
+                this.reportFiles.add(file);
+            }
+        }
+    }
+
     public static void main(String[] argv) {
         try {
             createLogFile();
@@ -149,6 +160,13 @@ public class ReportsAnalayzer {
         LOGGER.log(Level.INFO, "{0} Report Entities Averaged", counter);
 
         this.writeResult(resultAverage, reportFiles.get(0));
+    }
+
+    public void compute10FoldFiles() throws Exception {
+        if (reportFiles.size() != 10) {
+            throw new Exception("The files are not correct for 10-fold.");
+        }
+
     }
 
     private Pair<File, File> getNextFilesPair() {
@@ -369,37 +387,19 @@ public class ReportsAnalayzer {
 
     private void computeResults() throws IOException, Exception {
         for (File reportFile : reportFiles) {
-            LOGGER.log(Level.INFO, "Computing results for file {0}", reportFile.getName());
-            List<FileResult> fileResults = this.getFileResults(reportFile);
-            List<CategoryResult> categoryResults = computeCategoryResults(fileResults);
+            ClassificationResult result = this.computeResult(reportFile);
             File resultFile = this.createResultFile(reportFile);
             String resultFilePath = resultFile.getPath();
-            double precisionSum = 0.0;
-            double recallSum = 0.0;
-            double sampleCount = 0.0;
-            double fmeasureSum = 0.0;
-            double tpSum = 0.0;
 
-            FileWriter.appendString("Category ID,Category Name,True Positives,False Negatives,False Positives"
-                    + ",Precision,Recall,F-Measure" + "\n", resultFilePath);
-            for (CategoryResult categoryResult : categoryResults) {
-                FileWriter.appendString(categoryResult.toString() + "\n", resultFilePath);
-                fmeasureSum += categoryResult.fMeasure();
-                recallSum += categoryResult.recall();
-                precisionSum += categoryResult.precision();
-                sampleCount += categoryResult.sampleCount();
-                tpSum += categoryResult.getTruePositives();
-            }
-
-            FileWriter.appendString("Total Accuracy,Macro Precision,Macro Recall"
-                    + ",Macro F-Measure" + "\n", resultFilePath);
-            double totalAccuracy = (tpSum / sampleCount) * 100;
-            DecimalFormat formatter = new DecimalFormat("##.00");
-            FileWriter.appendString(formatter.format(totalAccuracy) + ",", resultFilePath);
-            FileWriter.appendString(formatter.format(precisionSum / categoryResults.size()) + ",", resultFilePath);
-            FileWriter.appendString(formatter.format(recallSum / categoryResults.size()) + ",", resultFilePath);
-            FileWriter.appendString(formatter.format(fmeasureSum / categoryResults.size()), resultFilePath);
+            FileWriter.appendString(result.toString(), resultFilePath);
         }
+    }
+
+    private ClassificationResult computeResult(File reportFile) throws IOException, Exception {
+        LOGGER.log(Level.INFO, "Computing results for file {0}", reportFile.getName());
+        List<FileResult> fileResults = this.getFileResults(reportFile);
+        List<CategoryResult> categoryResults = computeCategoryResults(fileResults);
+        return new ClassificationResult(categoryResults);
     }
 
     private List<FileResult> getFileResults(File file) throws IOException {
