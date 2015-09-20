@@ -11,7 +11,9 @@ import cloudservices.brokerage.commons.utils.logging.LoggerSetup;
 import java.io.File;
 import java.io.IOException;
 import java.text.DateFormat;
+import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.HashMap;
 import java.util.List;
@@ -42,8 +44,11 @@ public class ReportsAnalayzer {
 
             LOGGER.log(Level.SEVERE, "Analyzing Report Files Start...");
 
-            ReportsAnalayzer analyzer = new ReportsAnalayzer("reports/test/", "txt");
-            analyzer.analyzeAll2FoldFiles();
+//            String reportsFolderAddress = "C:\\Users\\Administrator\\Documents\\Education\\M.Sc\\Thesis\\Implementation\\Classification\\Service-Classification-Bitbucket\\SnapshotRepository\\";
+//            reportsFolderAddress += "RESTS10Fold\\results\\";
+            String reportsFolderAddress = "test/";
+            ReportsAnalayzer analyzer = new ReportsAnalayzer(reportsFolderAddress, "log");
+            analyzer.computeResults();
 
         } catch (Exception ex) {
             LOGGER.log(Level.SEVERE, ex.getMessage(), ex);
@@ -360,5 +365,119 @@ public class ReportsAnalayzer {
         }
 
         LOGGER.log(Level.INFO, "{0} Report Entities Wrote to Files", counter);
+    }
+
+    private void computeResults() throws IOException, Exception {
+        for (File reportFile : reportFiles) {
+            LOGGER.log(Level.INFO, "Computing results for file {0}", reportFile.getName());
+            List<FileResult> fileResults = this.getFileResults(reportFile);
+            List<CategoryResult> categoryResults = computeCategoryResults(fileResults);
+            File resultFile = this.createResultFile(reportFile);
+            String resultFilePath = resultFile.getPath();
+            double precisionSum = 0.0;
+            double recallSum = 0.0;
+            double sampleCount = 0.0;
+            double fmeasureSum = 0.0;
+            double tpSum = 0.0;
+
+            FileWriter.appendString("Category ID,Category Name,True Positives,False Negatives,False Positives"
+                    + ",Precision,Recall,F-Measure" + "\n", resultFilePath);
+            for (CategoryResult categoryResult : categoryResults) {
+                FileWriter.appendString(categoryResult.toString() + "\n", resultFilePath);
+                fmeasureSum += categoryResult.fMeasure();
+                recallSum += categoryResult.recall();
+                precisionSum += categoryResult.precision();
+                sampleCount += categoryResult.sampleCount();
+                tpSum += categoryResult.getTruePositives();
+            }
+
+            FileWriter.appendString("Total Accuracy,Macro Precision,Macro Recall"
+                    + ",Macro F-Measure" + "\n", resultFilePath);
+            double totalAccuracy = (tpSum / sampleCount) * 100;
+            DecimalFormat formatter = new DecimalFormat("##.00");
+            FileWriter.appendString(formatter.format(totalAccuracy) + ",", resultFilePath);
+            FileWriter.appendString(formatter.format(precisionSum / categoryResults.size()) + ",", resultFilePath);
+            FileWriter.appendString(formatter.format(recallSum / categoryResults.size()) + ",", resultFilePath);
+            FileWriter.appendString(formatter.format(fmeasureSum / categoryResults.size()), resultFilePath);
+        }
+    }
+
+    private List<FileResult> getFileResults(File file) throws IOException {
+        List<FileResult> fileResults = new ArrayList<>();
+
+        List<String> lines = FileReader.ReadAllLines(file);
+        FileResult fr = new FileResult();
+
+        for (String line : lines) {
+            if (line.startsWith("                 File: ")) {
+                fr = new FileResult();
+                fr.setFileName(line.substring(line.indexOf(": ") + 2));
+            } else if (line.startsWith("         Subject's ID: ")) {
+                fr.setIdentifiedObject(line.substring(line.indexOf(": ") + 2));
+            } else if (line.startsWith("Expected subject's ID: ")) {
+                fr.setExpectedObject(line.substring(line.indexOf(": ") + 2, line.indexOf("(") - 1));
+            } else if (line.startsWith("     Expected subject:")) {
+                fr.setExpectedName(line.substring(line.indexOf(": ") + 2));
+            } else if (line.startsWith("       Second Best ID: ")) {
+                fr.setSecondBest(line.substring(line.indexOf(": ") + 2));
+                if (fr.validate()) {
+                    LOGGER.log(Level.INFO, "Found {0}", fr);
+                    fileResults.add(fr);
+                    fr = new FileResult();
+                } else {
+                    LOGGER.log(Level.SEVERE, "File result {0} is not valid", fr);
+                }
+            }
+        }
+
+        return fileResults;
+    }
+
+    private List<CategoryResult> computeCategoryResults(List<FileResult> fileResults) {
+        List<CategoryResult> categoryResults = new ArrayList<>();
+        for (FileResult fileResult : fileResults) {
+            String category = fileResult.getExpectedObject();
+            CategoryResult catResult = this.findCategoryResult(categoryResults, category);
+            catResult.setCategoryName(fileResult.getExpectedName());
+
+            if (fileResult.isCorrect()) {
+                catResult.setTruePositives(catResult.getTruePositives() + 1);
+            } else {
+                catResult.setFalseNegatives(catResult.getFalseNegatives() + 1);
+                CategoryResult falseResult = this.findCategoryResult(categoryResults, fileResult.getIdentifiedObject());
+                falseResult.setFalsePositives(falseResult.getFalsePositives() + 1);
+            }
+        }
+
+        return categoryResults;
+    }
+
+    private CategoryResult findCategoryResult(List<CategoryResult> results, String category) {
+        for (CategoryResult result : results) {
+            if (result.getCategory().compareTo(category) == 0) {
+                return result;
+            }
+        }
+
+        // not found
+        CategoryResult catResult = new CategoryResult(category);
+        results.add(catResult);
+        return catResult;
+    }
+
+    private File createResultFile(File file) throws Exception {
+        String address = file.getPath().replace(file.getName(), "");
+        String fileName = file.getName().replace("." + this.extension, "");
+
+        String resultName = fileName + "-Result";
+        File resultFile = new File(address + resultName + ".txt");
+        if (resultFile.exists()) {
+            LOGGER.log(Level.FINE, "Result file already exists : {0}", resultFile.getPath());
+            resultFile.delete();
+        }
+
+        resultFile.createNewFile();
+
+        return resultFile;
     }
 }
