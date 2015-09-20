@@ -24,7 +24,14 @@ public class ReportEntityComparator implements Comparator<String> {
     public int compare(String key1, String key2) {
         ReportRow rr1 = base.get(key1).getConfigResult();
         ReportRow rr2 = base.get(key2).getConfigResult();
+
         if (rr1.getGuess().equals(rr2.getGuess())) {
+            if (rr1.getConfig().compareTo("ALL") == 0) {
+                return 1;
+            }
+            if (rr2.getConfig().compareTo("ALL") == 0) {
+                return -1;
+            }
             if (rr1.compareTo(rr2) > 0) {
                 return -1;
             } else if (rr1.compareTo(rr2) < 0) {
