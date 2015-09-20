@@ -85,6 +85,9 @@ public class CategoryResult {
 
     public double getFmeasure() {
         if (this.fMeasure == 0) {
+            if (this.getPrecision() == 0 && this.getRecall() == 0) {
+                return 0;
+            }
             return (2.0 * this.getPrecision() * this.getRecall()) / (double) (this.getPrecision() + this.getRecall());
         }
         return this.fMeasure;
