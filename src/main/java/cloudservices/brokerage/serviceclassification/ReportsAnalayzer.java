@@ -43,7 +43,7 @@ public class ReportsAnalayzer {
         List<File> allFiles = DirectoryUtil.getAllFiles(reportsFolderAddress, extension);
         this.reportFiles = new ArrayList<>();
         for (File file : allFiles) {
-            if (file.getName().compareTo(fileName) == 0) {
+            if (file.getName().contains(fileName)) {
                 this.reportFiles.add(file);
             }
         }
@@ -55,12 +55,14 @@ public class ReportsAnalayzer {
 
             LOGGER.log(Level.SEVERE, "Analyzing Report Files Start...");
 
-//            String reportsFolderAddress = "C:\\Users\\Administrator\\Documents\\Education\\M.Sc\\Thesis\\Implementation\\Classification\\Service-Classification-Bitbucket\\SnapshotRepository\\";
-//            reportsFolderAddress += "RESTS10Fold\\results\\";
-            String reportsFolderAddress = "test/";
-            ReportsAnalayzer analyzer = new ReportsAnalayzer(reportsFolderAddress, "log");
-            analyzer.computeResults();
+            String reportsFolderAddress = "C:\\Users\\Administrator\\Documents\\Education\\M.Sc\\Thesis\\Implementation\\Classification\\Service-Classification-Bitbucket\\SnapshotRepository\\";
+            reportsFolderAddress += "WSDLS10Fold-WithContext\\results\\";
+            String fileName = "marfcat-silence-noise-bandstop-fft-cheb-flucid";
+            ReportsAnalayzer analyzer = new ReportsAnalayzer(reportsFolderAddress, "txt");
+            analyzer.analyze10FoldFiles();
 
+//            ReportsAnalayzer analyzer = new ReportsAnalayzer(reportsFolderAddress, "log", fileName);
+//            analyzer.computeNFoldFiles(10);
         } catch (Exception ex) {
             LOGGER.log(Level.SEVERE, ex.getMessage(), ex);
         }
@@ -162,11 +164,22 @@ public class ReportsAnalayzer {
         this.writeResult(resultAverage, reportFiles.get(0));
     }
 
-    public void compute10FoldFiles() throws Exception {
-        if (reportFiles.size() != 10) {
-            throw new Exception("The files are not correct for 10-fold.");
+    public void computeNFoldFiles(int n) throws Exception {
+        if (reportFiles.size() != n) {
+            throw new Exception("The files are not correct for n-fold.");
         }
 
+        ClassificationResult[] results = new ClassificationResult[n];
+
+        for (int i = 0; i < n; i++) {
+            results[i] = this.computeResult(reportFiles.get(i));
+        }
+
+        ClassificationResult average = new ClassificationResult(results);
+        File resultFile = this.createResultFile(reportFiles.get(0));
+        String resultFilePath = resultFile.getPath();
+
+        FileWriter.appendString(average.toString(), resultFilePath);
     }
 
     private Pair<File, File> getNextFilesPair() {
@@ -216,7 +229,7 @@ public class ReportsAnalayzer {
         }
 
         String averageName = fileName + "-Average";
-        File average = new File(address + averageName + "." + this.extension);
+        File average = new File(address + averageName + ".avg");
         if (average.exists()) {
             LOGGER.log(Level.FINE, "Average file already exists : {0}", average.getPath());
             average.delete();
@@ -224,7 +237,7 @@ public class ReportsAnalayzer {
         average.createNewFile();
 
         String configOnlyName = fileName + "-ConfigOnlyAverage";
-        File configOnly = new File(address + configOnlyName + "." + this.extension);
+        File configOnly = new File(address + configOnlyName + ".avg");
         if (configOnly.exists()) {
             LOGGER.log(Level.FINE, "Config only file already exists : {0}", configOnly.getPath());
             configOnly.delete();
@@ -385,7 +398,7 @@ public class ReportsAnalayzer {
         LOGGER.log(Level.INFO, "{0} Report Entities Wrote to Files", counter);
     }
 
-    private void computeResults() throws IOException, Exception {
+    private void computeAllResults() throws IOException, Exception {
         for (File reportFile : reportFiles) {
             ClassificationResult result = this.computeResult(reportFile);
             File resultFile = this.createResultFile(reportFile);
@@ -467,10 +480,13 @@ public class ReportsAnalayzer {
 
     private File createResultFile(File file) throws Exception {
         String address = file.getPath().replace(file.getName(), "");
+        address += "Average";
+        DirectoryUtil.createDir(address);
+        address += "/";
         String fileName = file.getName().replace("." + this.extension, "");
 
         String resultName = fileName + "-Result";
-        File resultFile = new File(address + resultName + ".txt");
+        File resultFile = new File(address + resultName + ".avg");
         if (resultFile.exists()) {
             LOGGER.log(Level.FINE, "Result file already exists : {0}", resultFile.getPath());
             resultFile.delete();

@@ -5,6 +5,7 @@
 package cloudservices.brokerage.serviceclassification;
 
 import java.text.DecimalFormat;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -29,9 +30,9 @@ public class ClassificationResult {
         double tpSum = 0.0;
 
         for (CategoryResult categoryResult : categoryResults) {
-            fmeasureSum += categoryResult.fMeasure();
-            recallSum += categoryResult.recall();
-            precisionSum += categoryResult.precision();
+            fmeasureSum += categoryResult.getFmeasure();
+            recallSum += categoryResult.getRecall();
+            precisionSum += categoryResult.getPrecision();
             sampleCount += categoryResult.sampleCount();
             tpSum += categoryResult.getTruePositives();
         }
@@ -40,6 +41,46 @@ public class ClassificationResult {
         this.macroPrecision = precisionSum / categoryResults.size();
         this.macroRecall = recallSum / categoryResults.size();
         this.macroFMeasure = fmeasureSum / categoryResults.size();
+    }
+
+    public ClassificationResult(ClassificationResult[] results) {
+        double precisionSum = 0.0;
+        double recallSum = 0.0;
+        double fmeasureSum = 0.0;
+        double accuracySum = 0.0;
+
+        this.categoryResults = new ArrayList<>();
+
+        for (ClassificationResult result : results) {
+            precisionSum += result.macroPrecision;
+            recallSum += result.macroRecall;
+            fmeasureSum += result.macroFMeasure;
+            accuracySum += result.totalAccuracy;
+            for (CategoryResult categoryResult : result.categoryResults) {
+                CategoryResult average = this.findCategoryResult(categoryResult.getCategory());
+                average.setCategoryName(categoryResult.getCategoryName());
+                average.setFalseNegatives(average.getFalseNegatives() + categoryResult.getFalseNegatives());
+                average.setFalsePositives(average.getFalsePositives() + categoryResult.getFalsePositives());
+                average.setTruePositives(average.getTruePositives() + categoryResult.getTruePositives());
+                average.precision = average.precision + categoryResult.getPrecision();
+                average.recall = average.recall + categoryResult.getRecall();
+                average.fMeasure = average.fMeasure + categoryResult.getFmeasure();
+            }
+        }
+
+        this.macroFMeasure = fmeasureSum / results.length;
+        this.macroPrecision = precisionSum / results.length;
+        this.macroRecall = recallSum / results.length;
+        this.totalAccuracy = accuracySum / results.length;
+
+        for (CategoryResult categoryResult : this.categoryResults) {
+            categoryResult.setFalseNegatives(categoryResult.getFalseNegatives() / results.length);
+            categoryResult.setFalsePositives(categoryResult.getFalsePositives() / results.length);
+            categoryResult.setTruePositives(categoryResult.getTruePositives() / results.length);
+            categoryResult.fMeasure = categoryResult.fMeasure / results.length;
+            categoryResult.precision = categoryResult.precision / results.length;
+            categoryResult.recall = categoryResult.recall / results.length;
+        }
     }
 
     public List<CategoryResult> getCategoryResults() {
@@ -104,5 +145,18 @@ public class ClassificationResult {
         }
 
         return sb.toString();
+    }
+
+    private CategoryResult findCategoryResult(String category) {
+        for (CategoryResult result : this.categoryResults) {
+            if (result.getCategory().compareTo(category) == 0) {
+                return result;
+            }
+        }
+
+        // not found
+        CategoryResult catResult = new CategoryResult(category);
+        this.categoryResults.add(catResult);
+        return catResult;
     }
 }

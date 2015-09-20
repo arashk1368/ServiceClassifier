@@ -14,9 +14,12 @@ public class CategoryResult {
 
     private String category;
     private String categoryName;
-    private int falseNegatives;
-    private int truePositives;
-    private int falsePositives;
+    private double falseNegatives;
+    private double truePositives;
+    private double falsePositives;
+    public double precision;
+    public double recall;
+    public double fMeasure;
 
     public CategoryResult() {
     }
@@ -33,27 +36,27 @@ public class CategoryResult {
         this.category = category;
     }
 
-    public int getFalseNegatives() {
+    public double getFalseNegatives() {
         return falseNegatives;
     }
 
-    public void setFalseNegatives(int falseNegatives) {
+    public void setFalseNegatives(double falseNegatives) {
         this.falseNegatives = falseNegatives;
     }
 
-    public int getTruePositives() {
+    public double getTruePositives() {
         return truePositives;
     }
 
-    public void setTruePositives(int truePositives) {
+    public void setTruePositives(double truePositives) {
         this.truePositives = truePositives;
     }
 
-    public int getFalsePositives() {
+    public double getFalsePositives() {
         return falsePositives;
     }
 
-    public void setFalsePositives(int falsePositives) {
+    public void setFalsePositives(double falsePositives) {
         this.falsePositives = falsePositives;
     }
 
@@ -65,26 +68,38 @@ public class CategoryResult {
         this.categoryName = categoryName;
     }
 
-    public double precision() {
-        return ((double) this.truePositives / (double) (this.falsePositives + this.truePositives)) * 100;
+    public double getPrecision() {
+        if (precision == 0) {
+            return ((double) this.truePositives / (double) (this.falsePositives + this.truePositives)) * 100;
+        }
+
+        return this.precision;
     }
 
-    public double recall() {
-        return ((double) this.truePositives / (double) (this.truePositives + this.falseNegatives)) * 100;
+    public double getRecall() {
+        if (this.recall == 0) {
+            return ((double) this.truePositives / (double) (this.truePositives + this.falseNegatives)) * 100;
+        }
+        return this.recall;
     }
 
-    public double fMeasure() {
-        return (2.0 * this.precision() * this.recall()) / (double) (this.precision() + this.recall());
+    public double getFmeasure() {
+        if (this.fMeasure == 0) {
+            return (2.0 * this.getPrecision() * this.getRecall()) / (double) (this.getPrecision() + this.getRecall());
+        }
+        return this.fMeasure;
     }
 
-    public int sampleCount() {
+    public double sampleCount() {
         return this.truePositives + this.falseNegatives;
     }
 
     @Override
     public String toString() {
         DecimalFormat formatter = new DecimalFormat("##.00");
-        return category + "," + categoryName + "," + truePositives + "," + +falseNegatives + "," + falsePositives
-                + "," + formatter.format(precision()) + "," + formatter.format(recall()) + "," + formatter.format(fMeasure());
+        DecimalFormat formatter2 = new DecimalFormat("##.##");
+        return category + "," + categoryName + "," + formatter2.format(truePositives) + "," + formatter2.format(falseNegatives) + ","
+                + formatter2.format(falsePositives) + "," + formatter.format(getPrecision()) + "," + formatter.format(getRecall()) + ","
+                + formatter.format(getFmeasure());
     }
 }
