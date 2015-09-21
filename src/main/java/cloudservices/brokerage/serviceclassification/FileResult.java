@@ -76,6 +76,6 @@ public class FileResult {
     }
 
     boolean validate() {
-        return this.expectedObject != null && this.fileName != null && this.identifiedObject != null && this.secondBest != null;
+        return this.fileName != null && this.identifiedObject != null && this.secondBest != null;
     }
 }
